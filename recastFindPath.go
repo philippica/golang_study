@@ -7,6 +7,7 @@ import "math"
 
 const DT_FAILURE = 1 << 31
 const DT_SUCCESS = 1 << 30
+const DT_NULL_LINK = 0xffffffff
 const DT_INVALID_PARAM = 1 << 3
 type dtNode struct {
 	pos   []float64
@@ -114,12 +115,9 @@ func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]flo
 			lastBestNodeCost = bestNode
 			break
 		}
-
 		bestRef := bestNode.id
 		bestPoly := 0
-
 		parentRef := getNodeAtIdx(bestNode.pidx)
-
 		getTileAndPolyByRefUnsafe(bestRef, bestTile, bestPoly)
 
 		for i := bestPoly.firstLink; i != DT_NULL_LINK; i = bestTile.links[i].next {
@@ -133,7 +131,7 @@ func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]flo
 			neighbourPoly := 0
 
 			getTileAndPolyByRefUnsafe(neighbourRef, &neighbourTile, &neighbourPoly)
-
+			var curCost,endCost int
 			if neighbourRef == endRef {
 				curCost = getCost(bestNode.pos, neighbourNode.pos, parentRef, parentTile, parentPoly, bestRef, bestTile, bestPoly, neighbourRef, neighbourTile, neighbourPoly)
 				endCost = getCost(neighbourNode.pos, endPos, bestRef, bestTile, bestPoly, neighbourRef, neighbourTile, neighbourPoly,0, 0, 0)
