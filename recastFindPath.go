@@ -3,8 +3,6 @@ package main
 //import "fmt"
 import "math"
 
-
-
 const DT_FAILURE = 1 << 31
 const DT_SUCCESS = 1 << 30
 const DT_NULL_LINK = 0xffffffff
@@ -86,6 +84,11 @@ func (instance *openList) empty()bool{
 		return false;
 	}
 }
+//neighbourRef, &neighbourTile, &neighbourPoly
+func getTileAndPolyByRefUnsafe(ref uint64,tile *dtTile,poly *dtPoly){
+	
+}
+
 
 
 
@@ -144,7 +147,7 @@ func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]flo
 		bestRef := bestNode.id
 		var bestPoly *dtPoly
 		parentRef := bestNode.pidx
-		var bestTile dtTile
+		var bestTile *dtTile
 		getTileAndPolyByRefUnsafe(bestRef, bestTile, bestPoly)
 
 		for i := bestPoly.firstLink; i != nil; i = bestTile.next {
@@ -152,12 +155,12 @@ func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]flo
 			if neighbourRef == 0 || neighbourRef == parentRef {
 				continue
 			}
-			neighbourTile := 0
+			var neighbourTile *dtTile
 			var neighbourPoly *dtPoly
 			neighbourNode := new (dtNode);
 			neighbourNode.id = neighbourRef
 			neighbourNode.pidx = bestNode
-			getTileAndPolyByRefUnsafe(neighbourRef, &neighbourTile, &neighbourPoly)
+			getTileAndPolyByRefUnsafe(neighbourRef, neighbourTile, neighbourPoly)
 			var curCost,endCost,cost,heuristic float64
 			//var heuristic int
 			if neighbourRef == endRef {
