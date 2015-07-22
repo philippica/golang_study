@@ -9,14 +9,32 @@ const DT_FAILURE = 1 << 31
 const DT_SUCCESS = 1 << 30
 const DT_NULL_LINK = 0xffffffff
 const DT_INVALID_PARAM = 1 << 3
+const DT_NODE_CLOSED = 0x01
+const DT_NODE_OPEN = 0x02
+const DT_BUFFER_TOO_SMALL = 1 << 4
+const DT_PARTIAL_RESULT = 1 << 6
+
 type dtNode struct {
 	pos   []float64
 	cost  float64
 	total float64
-	pidx  uint64
+	pidx  *dtNode
 	flags uint64
 	id    uint64
 }
+
+type dtTile struct{
+	data int;
+	next *dtTile;
+} 
+
+type dtPoly struct{
+	area float64
+} 
+func (instance *dtPoly)getArea() float64 {
+	return instance.area;
+}
+
 
 //todo : to create a priority_queue
 
@@ -36,7 +54,6 @@ func (instance *openList) trickleDown(i int, node *dtNode){
 		child = i * 2 + 1
 	}
 }
-
 
 
 func (instance *openList) pop()*dtNode{
@@ -77,7 +94,14 @@ func dtVdist(a []float64, b []float64) float64 {
 	return math.Sqrt(sum)
 }
 
-func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]float64, path *[]uint64, pathCount *int, maxPath int) uint32 {
+
+func getCost(a []float64, b []float64, cur *dtPoly) float64 {
+	return 1.0*dtVdist(a,b)*cur.getArea();
+}
+
+
+
+func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]float64, path *[]uint64, pathCount *int, maxPath int) uint64 {
 	*pathCount = 0
 
 	if startRef == 0 || endRef == 0 {
@@ -101,63 +125,65 @@ func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]flo
 	m_openList := &openList{}
 
 	startNode := new(dtNode)
-	startNode.pidx = 0
+	startNode.pidx = nil
 	startNode.cost = 0
 	startNode.total = dtVdist(*startPos, *endPos) * 0.999
 	startNode.flags = 1
 	startNode.id = startRef
-	lastBestNodeCost := startNode
-	status := DT_SUCCESS
+	lastBestNode := startNode
+	lastBestNodeCost := startNode.total
+	var status uint64
+	status = DT_SUCCESS
 	m_openList.push(startNode)
 	for !m_openList.empty() {
 		bestNode := m_openList.pop()
 		if bestNode.id == endRef {
-			lastBestNodeCost = bestNode
+			lastBestNode = bestNode
 			break
 		}
 		bestRef := bestNode.id
-		bestPoly := 0
-		parentRef := getNodeAtIdx(bestNode.pidx)
+		var bestPoly *dtPoly
+		parentRef := bestNode.pidx
+		var bestTile dtTile
 		getTileAndPolyByRefUnsafe(bestRef, bestTile, bestPoly)
 
-		for i := bestPoly.firstLink; i != DT_NULL_LINK; i = bestTile.links[i].next {
+		for i := bestPoly.firstLink; i != nil; i = bestTile.next {
 			neighbourRef := bestTile.links[i].ref
-
 			if neighbourRef == 0 || neighbourRef == parentRef {
 				continue
 			}
-
 			neighbourTile := 0
-			neighbourPoly := 0
-
+			var neighbourPoly *dtPoly
+			neighbourNode := new (dtNode);
+			neighbourNode.id = neighbourRef
+			neighbourNode.pidx = bestNode
 			getTileAndPolyByRefUnsafe(neighbourRef, &neighbourTile, &neighbourPoly)
-			var curCost,endCost int
+			var curCost,endCost,cost,heuristic float64
+			//var heuristic int
 			if neighbourRef == endRef {
-				curCost = getCost(bestNode.pos, neighbourNode.pos, parentRef, parentTile, parentPoly, bestRef, bestTile, bestPoly, neighbourRef, neighbourTile, neighbourPoly)
-				endCost = getCost(neighbourNode.pos, endPos, bestRef, bestTile, bestPoly, neighbourRef, neighbourTile, neighbourPoly,0, 0, 0)
-				
+				curCost = getCost(bestNode.pos, neighbourNode.pos, bestPoly)
+				endCost = getCost(neighbourNode.pos, *endPos,neighbourPoly)
 				cost = bestNode.cost + curCost + endCost
 				heuristic = 0;
 			}else{
-				curCost = getCost(bestNode.pos, neighbourNode.pos, parentRef, parentTile, parentPoly, bestRef, bestTile, bestPoly, neighbourRef, neighbourTile, neighbourPoly);
+				curCost = getCost(bestNode.pos, neighbourNode.pos,bestPoly);
 				cost = bestNode.cost + curCost
-				heuristic = dtVdist(neighbourNode.pos, endPos) * 0.99
+				heuristic = dtVdist(neighbourNode.pos, *endPos) * 0.99
 			}
 			total := cost + heuristic;
-			if (neighbourNode.flags & DT_NODE_OPEN) && total >= neighbourNode.total{
+			if (neighbourNode.flags & DT_NODE_OPEN) != 0 && total >= neighbourNode.total{
 				continue;
 			}
-			if (neighbourNode.flags & DT_NODE_CLOSED) && total >= neighbourNode.total{
+			if (neighbourNode.flags & DT_NODE_CLOSED) != 0 && total >= neighbourNode.total{
 				continue;
 			}
-			if(neighbourNode.flags & DT_NODE_OPEN){
-				m_openList.modify(neighbourNode);
+			if(neighbourNode.flags & DT_NODE_OPEN) != 0 {
+				//m_openList.modify(neighbourNode);
 			}else{
 				neighbourNode.flags |= DT_NODE_OPEN;
 				m_openList.push(neighbourNode);
 			}
-			if(heuristic < lastBestNodeCost)
-			{
+			if(heuristic < lastBestNodeCost){
 				lastBestNodeCost = heuristic;
 				lastBestNode = neighbourNode;
 			}
@@ -169,14 +195,14 @@ func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]flo
 	prev := 0;
 	node := lastBestNode
 	n := 0
-	for node!=0{
+	for node!=nil{
 		*path = append(*path, node.id);
 		n += 1;
 		if(n >= maxPath){
 			status |= DT_BUFFER_TOO_SMALL;
 			break;
 		}
-		node = getNodeAtIdx(node.pidx);
+		node = node.pidx;
 	}
 	*pathCount = n
 	return status;
