@@ -22,12 +22,13 @@ type dtNode struct {
 }
 
 type dtTile struct{
-	data int;
+	data uint64;
 	next *dtTile;
 } 
 
 type dtPoly struct{
 	area float64
+	firstLink *dtTile
 } 
 func (instance *dtPoly)getArea() float64 {
 	return instance.area;
@@ -146,13 +147,13 @@ func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]flo
 		}
 		bestRef := bestNode.id
 		var bestPoly *dtPoly
-		parentRef := bestNode.pidx
-		var bestTile *dtTile
+		parent := bestNode.pidx
+		var bestTile *dtTile 
 		getTileAndPolyByRefUnsafe(bestRef, bestTile, bestPoly)
 
 		for i := bestPoly.firstLink; i != nil; i = bestTile.next {
-			neighbourRef := bestTile.links[i].ref
-			if neighbourRef == 0 || neighbourRef == parentRef {
+			neighbourRef := i.data
+			if neighbourRef == 0 || neighbourRef == parent.id {
 				continue
 			}
 			var neighbourTile *dtTile
@@ -195,7 +196,7 @@ func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]flo
 	if(lastBestNode.id != endRef){
 		status |= DT_PARTIAL_RESULT;
 	}
-	prev := 0;
+	//prev := 0;
 	node := lastBestNode
 	n := 0
 	for node!=nil{
