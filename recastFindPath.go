@@ -31,7 +31,7 @@ type dtPoly struct {
 	firstLink *dtTile
 }
 
-// Add a edge between a and b
+// Add an edge between a and b
 func add(a *dtPoly, b uint64) {
 	t := new(dtTile)
 	t.data = b
@@ -249,4 +249,15 @@ func main() {
 		push(m_openList, 3)
 		pop(m_openList)
 	*/
+
+	// TEST 2
+	// To test does the graph module works well
+	// Todo:
+	t := new(dtPoly)
+	t.firstLink = nil
+	add(t, 100)
+	add(t, 123)
+	for i := t.firstLink; i != nil; i = i.next {
+		fmt.Printf("%d\n", i.data)
+	}
 }
