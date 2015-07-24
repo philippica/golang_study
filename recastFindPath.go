@@ -31,11 +31,17 @@ type dtPoly struct {
 	firstLink *dtTile
 }
 
+// Add a edge between a and b
+func add(a *dtPoly, b uint64) {
+	t := new(dtTile)
+	t.data = b
+	t.next = a.firstLink
+	a.firstLink = t
+}
+
 func (instance *dtPoly) getArea() float64 {
 	return instance.area
 }
-
-//todo : to create a priority_queue
 
 type openList struct {
 	m_size int
@@ -145,13 +151,12 @@ func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]flo
 			lastBestNode = bestNode
 			break
 		}
-		bestRef := bestNode.id
+		//bestRef := bestNode.id
 		var bestPoly *dtPoly
 		parent := bestNode.pidx
-		var bestTile *dtTile
-		getTileAndPolyByRefUnsafe(bestRef, bestTile, bestPoly)
-
-		for i := bestPoly.firstLink; i != nil; i = bestTile.next {
+		//var bestTile *dtTile
+		//getTileAndPolyByRefUnsafe(bestRef, bestTile, bestPoly)
+		for i := bestPoly.firstLink; i != nil; i = i.next {
 			neighbourRef := i.data
 			if neighbourRef == 0 || neighbourRef == parent.id {
 				continue
@@ -228,8 +233,9 @@ func pop(m_openList *openList) {
 
 func main() {
 	/*
-		// TEST 1 
-		// To test does priority queue works well
+		// TEST 1
+		// To test that does the priority queue module works well
+		// all is OK!
 		m_openList := &openList{}
 		push(m_openList, 10)
 		push(m_openList, 50)
@@ -243,6 +249,4 @@ func main() {
 		push(m_openList, 3)
 		pop(m_openList)
 	*/
-	
-
 }
