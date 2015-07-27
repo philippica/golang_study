@@ -31,7 +31,11 @@ type dtPoly struct {
 	firstLink *dtTile
 }
 
-// Add an edge between a and b
+type graph struct {
+	head []*dtPoly
+}
+
+// Add an edge between vertex A and vertex B
 func add(a *dtPoly, b uint64) {
 	t := new(dtTile)
 	t.data = b
@@ -98,6 +102,15 @@ func (instance *openList) empty() bool {
 	}
 }
 
+func (instance *openList) modify(node *dtNode) {
+	for i := 0; i <= instance.m_size; i++ {
+		if node == &instance.m_heap[i] {
+			instance.bubbleUp(i, node)
+			break
+		}
+	}
+}
+
 //neighbourRef, &neighbourTile, &neighbourPoly
 func getTileAndPolyByRefUnsafe(ref uint64, tile *dtTile, poly *dtPoly) {
 
@@ -112,9 +125,14 @@ func getCost(a []float64, b []float64, cur *dtPoly) float64 {
 	return 1.0 * dtVdist(a, b) * cur.getArea()
 }
 
-func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]float64, path *[]uint64, pathCount *int, maxPath int) uint64 {
-	*pathCount = 0
+func (instance *graph) getPolyFromReference(ref uint64) *dtPoly {
+	return instance.head[ref]
+}
 
+func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]float64, path *[]uint64, pathCount *int, maxPath int) uint64 {
+	
+		// TEST 1*pathCount = 0
+	G := new(graph)
 	if startRef == 0 || endRef == 0 {
 		return DT_FAILURE | DT_INVALID_PARAM
 	}
@@ -122,6 +140,7 @@ func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]flo
 	if maxPath == 0 {
 		return DT_FAILURE | DT_INVALID_PARAM
 	}
+
 	/*
 		if !validRef(startRef) || !validRef(endRef) {
 			return DT_FAILURE | DT_INVALID_PARAM
@@ -132,7 +151,6 @@ func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]flo
 		*pathCount = 1
 		return DT_SUCCESS
 	}
-	//var m_nodePool nodePool
 	m_openList := &openList{}
 	startNode := new(dtNode)
 	startNode.pidx = nil
@@ -153,6 +171,7 @@ func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]flo
 		}
 		//bestRef := bestNode.id
 		var bestPoly *dtPoly
+		bestPoly = G.getPolyFromReference(bestNode.id)
 		parent := bestNode.pidx
 		//var bestTile *dtTile
 		//getTileAndPolyByRefUnsafe(bestRef, bestTile, bestPoly)
@@ -187,7 +206,7 @@ func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]flo
 				continue
 			}
 			if (neighbourNode.flags & DT_NODE_OPEN) != 0 {
-				//m_openList.modify(neighbourNode);
+				m_openList.modify(neighbourNode)
 			} else {
 				neighbourNode.flags |= DT_NODE_OPEN
 				m_openList.push(neighbourNode)
@@ -216,6 +235,9 @@ func findPath(startRef uint64, endRef uint64, startPos *[]float64, endPos *[]flo
 	*pathCount = n
 	return status
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
 func push(m_openList *openList, num float64) {
 	startNode := new(dtNode)
 	startNode.pidx = nil
@@ -233,7 +255,6 @@ func pop(m_openList *openList) {
 
 func main() {
 	/*
-		// TEST 1
 		// To test that does the priority queue module works well
 		// all is OK!
 		m_openList := &openList{}
@@ -249,10 +270,10 @@ func main() {
 		push(m_openList, 3)
 		pop(m_openList)
 	*/
-
 	// TEST 2
 	// To test does the graph module works well
 	// Todo:
+
 	t := new(dtPoly)
 	t.firstLink = nil
 	add(t, 100)
