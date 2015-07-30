@@ -1,4 +1,3 @@
-// test
 package main
 
 import (
@@ -36,12 +35,14 @@ func main() {
 		var magic rune
 		var x, y, z float64
 		ss := strings.NewReader(s)
-		fmt.Fscanf(ss, "%c%f%f%f", &magic, &x, &y, &z)
+		fmt.Fscanf(ss, "%c", &magic)
 		if magic == 'v' {
+			fmt.Fscanf(ss, "%c%f%f%f", &magic, &x, &y, &z)
 			P.addPoint(x, y, z)
 		}
-		if(magic == 'f'){
-			
+		if magic == 'f' {
+			fmt.Fscanf(ss, "%c%f%f%f", &magic, &x, &y, &z)
+
 		}
 	}
 }
